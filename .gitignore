@@ -1,0 +1,12 @@
+# Local environments, caches, and generated intermediate media
+.venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.pytest_cache/
+.mypy_cache/
+.env
+.env.*
+*.log
+video/output/
+.DS_Store
