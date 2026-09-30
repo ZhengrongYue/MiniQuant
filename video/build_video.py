@@ -54,7 +54,7 @@ def slide(scene,idx):
 def short_captions(start, end, caption, limit=28):
     caption=''.join(caption.splitlines())
     if not caption:return []
-    pieces=[caption[i:i+limit] for i in range(0,len(caption),limit)]
+    pieces=[caption[i:i+limit].strip() for i in range(0,len(caption),limit)]
     span=max(end-start,0.1)
     total=sum(len(x) for x in pieces)
     cursor=start

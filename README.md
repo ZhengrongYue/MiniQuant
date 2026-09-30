@@ -32,7 +32,7 @@ Notebook 第 14 章提供正规券商 App 官方入口核验、纸面模拟、10
 
 ## 视频
 
-`video/scenes.json` 保存 35 个逐镜头脚本；`video/build_video.py` 使用 edge-tts、Noto Sans CJK 与 ffmpeg 渲染约半小时的中文旁白、逐句字幕、章节信息和 `video/MiniQuant_30min.mp4`。详见 [video/README.md](video/README.md)。
+`video/scenes.json` 保存 35 个逐镜头脚本；`video/build_video.py` 使用 edge-tts、Noto Sans CJK 与 ffmpeg 渲染约 34 分钟的中文旁白、逐句字幕、章节信息和 `video/MiniQuant_30min.mp4`。视频也按“例子与直觉 → 专业术语 → 使用边界”的顺序讲解。详见 [video/README.md](video/README.md)。
 
 ## 来源与许可
 
