@@ -9,4 +9,5 @@ __pycache__/
 .env.*
 *.log
 video/output/
+data/private/
 .DS_Store

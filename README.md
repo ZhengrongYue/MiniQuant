@@ -22,6 +22,8 @@ jupyter lab MiniQuant.ipynb
 
 ## 数据与再现
 
+新增 [simple_framework.ipynb](simple_framework.ipynb)：用 2026 年真实 A 股日线与东方财富财报，走通“清洗 → 低 PE 选股 → MA10 择时 → 下一开盘回测 → 绩效与成本分析”，再比较一个较长均线的轻量变体与分段结果。先读它，再进入主教材的高频和模型章节会更容易。配套抓取与回测实现分别位于 `tools/build_simple_snapshot.py`、`tools/simple_framework_core.py`。在可连接 BaoStock 与东方财富的网络运行 `python tools/build_simple_snapshot.py --end 2026-10-03`，然后运行 Notebook；程序以实际最后交易日为准，休市日不会凭空产生行情。东方财富原始财报快照保存在 `data/private/`，按其使用条款不随公开仓库发布；请在自己的环境获取。行情使用 BaoStock `adjustflag=1` **后复权（hfq）**，仅供收益研究；复权价格和分数份额不是可直接下单的报价与股数。Notebook 也对比了 BaoStock 与 TuShare Pro 的接口与权限，不声称已对两源进行实测误差比较。
+
 `data/real_equities.parquet` 含 66 支美股 2010-01-04 至 2024-08-30 的 243,540 行真实日行情；`data/manifest.json` 保存来源、筛选、哈希和局限。原始公开 CSV 来自 [stockPredictor 的 S&P 500 文件](https://github.com/mlin21/stockPredictor/blob/main/sp500_stocks.csv)，上游说明指向 [Kaggle S&P 500 Stocks](https://www.kaggle.com/datasets/andrewmvd/sp-500-stocks)；行业元数据来自 [Stock-Analysis-Project](https://github.com/Jiahao30/Stock-Analysis-Project)。Kaggle 原数据集标注为 CC0，两个 GitHub 来源仓库标注为 MIT；本项目保留来源链接及原始文件摘要，发布前仍应按实际使用范围复核上游条款。`tools/build_real_snapshot.py` 可从原始 CSV 重建冻结子集，须提供 `--prices`、`--companies` 和 `--out`。不要把当前 S&P 500 样本回看 2010 年的结果当无偏历史回测；也不要把推算的复权开盘价当可成交报价。
 
 A 股盘口/逐笔数据通常需要交易所或供应商授权。Notebook 的微型事件表和快照是**明确标注的教学夹具**，不是虚构为“真实样本”的行情。真实 Level-2 接入时，应先按对应交易所与接口版本验证字段、序号、订单关联、可得时刻和完整性，再做因子与策略结论。
