@@ -15,6 +15,10 @@ import pandas as pd
 
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data" / "private"
+POOL_SIZE = 10
+PE_LOWER = 8.0
+PE_UPPER = 30.0
+MA_WINDOW = 20
 
 
 def _digest(path: Path) -> str:
@@ -62,7 +66,7 @@ def load_market_context(data_dir: Path = DATA_DIR):
     return frame.drop_duplicates("date").sort_values("date").reset_index(drop=True)
 
 
-def clean_inputs(bars, reports, members, benchmark, ma_window=10):
+def clean_inputs(bars, reports, members, benchmark, ma_window=MA_WINDOW):
     """Apply an explicit schema; return clean tables and a small rejection audit."""
     if ma_window < 2:
         raise ValueError("ma_window must be at least 2")
@@ -89,7 +93,7 @@ def clean_inputs(bars, reports, members, benchmark, ma_window=10):
     if invalid_price.any():
         raise ValueError(f"Invalid OHLC/volume in {invalid_price.sum()} rows")
     audit["suspended_rows"] = int((bars["tradestatus"] != 1).sum())
-    audit["invalid_pe_rows"] = int((~bars["peTTM"].between(0, 30, inclusive="neither")).sum())
+    audit["invalid_pe_rows"] = int((~bars["peTTM"].between(PE_LOWER, PE_UPPER, inclusive="neither")).sum())
     bars = bars.sort_values(["code", "date"]).reset_index(drop=True)
     group = bars.groupby("code", sort=False)["close"]
     bars["ma"] = group.transform(lambda s: s.rolling(ma_window, min_periods=ma_window).mean())
@@ -101,10 +105,6 @@ def clean_inputs(bars, reports, members, benchmark, ma_window=10):
     )
     bars["cross_down"] = tradable & (bars["close"] < bars["ma"]) & (
         bars["prev_close"] >= bars["prev_ma"]
-    )
-    bars["below_ma"] = tradable & (bars["close"] < bars["ma"])
-    bars["below_ma_2"] = bars.groupby("code", sort=False)["below_ma"].transform(
-        lambda s: s.rolling(2, min_periods=2).sum().eq(2)
     )
 
     reports["code6"] = reports["SECURITY_CODE"].str.zfill(6)
@@ -150,11 +150,11 @@ def latest_public_report(reports: pd.DataFrame, decision_date: pd.Timestamp) -> 
     )
 
 
-def select_pool(day_bars: pd.DataFrame, reports: pd.DataFrame, day: pd.Timestamp, size=10):
-    """Select lowest positive PE among tradable members with known reports."""
+def select_pool(day_bars: pd.DataFrame, reports: pd.DataFrame, day: pd.Timestamp, size=POOL_SIZE):
+    """Select the lowest PE in (8, 30) among tradable members with known reports."""
     report_codes = set(latest_public_report(reports, day)["code6"])
     eligible = day_bars.loc[
-        day_bars["peTTM"].between(0, 30, inclusive="neither")
+        day_bars["peTTM"].between(PE_LOWER, PE_UPPER, inclusive="neither")
         & (day_bars["tradestatus"] == 1)
         & (day_bars["volume"] > 0)
         & (day_bars["isST"] == 0)
@@ -167,12 +167,9 @@ def select_pool(day_bars: pd.DataFrame, reports: pd.DataFrame, day: pd.Timestamp
     return list(chosen["code"]), len(eligible)
 
 
-def build_decisions(bars, reports, benchmark, first="2026-01-05", every=7,
-                    exit_confirm_days=1):
+def build_decisions(bars, reports, benchmark, first="2026-01-05", every=7):
     """At each close, update the 7-day PE pool and daily MA position state."""
     dates = list(benchmark.loc[benchmark["date"] >= pd.Timestamp(first), "date"])
-    if exit_confirm_days not in (1, 2):
-        raise ValueError("This teaching implementation supports 1 or 2 exit confirmation days")
     by_day = {day: frame for day, frame in bars.groupby("date", sort=False)}
     pool: set[str] = set()
     active: set[str] = set()
@@ -186,8 +183,7 @@ def build_decisions(bars, reports, benchmark, first="2026-01-05", every=7,
         if rebalance:
             pool_list, eligible_count = select_pool(day_bars, reports, day)
             pool = set(pool_list)
-        exit_flag = "cross_down" if exit_confirm_days == 1 else "below_ma_2"
-        down = set(day_bars.loc[day_bars[exit_flag], "code"])
+        down = set(day_bars.loc[day_bars["cross_down"], "code"])
         up = set(day_bars.loc[day_bars["cross_up"], "code"])
         active = (active & pool) - down
         active |= up & pool
@@ -201,17 +197,14 @@ def build_decisions(bars, reports, benchmark, first="2026-01-05", every=7,
 
 
 def run_backtest(bars, benchmark, decisions, cost_bps=10.0,
-                 initial_cash=1_000_000.0, rebalance_band=0.0):
+                 initial_cash=1_000_000.0):
     """Next-open orders with failed fills on suspended or zero-volume stocks.
 
     Units are fractional *adjusted-price units*, not actual A-share lots.
     Reweight equally only when the active set changes or the 7-day pool resets.
-    rebalance_band skips trades that only correct a small weight drift.
     """
     if cost_bps < 0:
         raise ValueError("cost_bps must be nonnegative")
-    if not 0 <= rebalance_band < 1:
-        raise ValueError("rebalance_band must be in [0, 1)")
     cost_rate = cost_bps / 10_000
     day_map = {day: frame.set_index("code") for day, frame in bars.groupby("date", sort=False)}
     dates = list(benchmark.loc[benchmark["date"] >= decisions.iloc[0]["signal_date"], "date"])
@@ -248,8 +241,6 @@ def run_backtest(bars, benchmark, decisions, cost_bps=10.0,
             # Sell first. Failed exits remain in the portfolio and consume capital.
             for code in sorted(list(units)):
                 value = units[code] * last_price[code]
-                if code in desired and value <= target * (1 + rebalance_band):
-                    continue
                 sell_value = max(0.0, value - (target if code in desired else 0.0))
                 if sell_value < 1e-6:
                     continue
@@ -272,8 +263,6 @@ def run_backtest(bars, benchmark, decisions, cost_bps=10.0,
                     blocked += 1
                     continue
                 value = units.get(code, 0.0) * last_price[code]
-                if value >= target * (1 - rebalance_band):
-                    continue
                 need = max(0.0, target - value)
                 notional = min(need, cash / (1 + cost_rate))
                 if notional < 1e-6:
