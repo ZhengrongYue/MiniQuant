@@ -5,9 +5,9 @@
 - `COVERAGE.md`：旧课程与 MiniQuant 的知识点对应关系。
 - `CURRICULUM_AUDIT.md`：课程图逐项验收与边界。
 - `build_real_snapshot.py`：从已取得的原始 CSV 重建冻结日行情，需要显式传入 `--prices`、`--companies`、`--out`。
-- `build_simple_snapshot.py`：从 BaoStock 和东方财富生成 `simple_framework.ipynb` 所需的本地私人 2026 年 A 股快照；原始数据不随公开仓库发布。
-- `simple_framework_core.py`：低 PE 选池、均线信号、下一开盘回测及绩效指标的可检查实现。
-- `make_trade_animation.py`：把每个 7 日调池阶段的全部模拟买卖记录渲染成 `figs/simple_framework_trades.gif`。
+- `build_simple_snapshot.py`：可选的批量抓取脚本；`simple_framework.ipynb` 已内置相同的数据获取流程，不依赖此脚本。
+- `simple_framework_core.py`：可选的复用版选股、信号、回测和绩效函数；教学 Notebook 已内置必要代码。
+- `make_trade_animation.py`：可选的独立 GIF 生成脚本；教学 Notebook 已内置动画代码。
 - `make_figures.py`：重绘 `figs/` 中的知识图。
 - `revise_curriculum.py`：历史一次性 Notebook 迁移脚本，已有标记时直接退出。
 
