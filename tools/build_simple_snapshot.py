@@ -187,7 +187,7 @@ def main() -> None:
             "Eastmoney public endpoint and retrospective revisions are not an immutable point-in-time database.",
             "BaoStock PE history and adjusted prices require independent production-grade point-in-time validation.",
             "Post-adjusted (hfq) OHLC is an economic-return proxy, not a real order price or share count.",
-            "The sample universe is CSI 300, so top 100 means top 100 within that universe, not all A shares.",
+            "The sample universe is CSI 300, so top 10 means top 10 within that universe, not all A shares.",
         ],
         "files": {path.name: sha256(path) for path in [members_path, bars_path, benchmark_path, shanghai_path, reports_path]},
     }

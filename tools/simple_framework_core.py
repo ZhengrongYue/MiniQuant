@@ -1,7 +1,7 @@
 """Small, inspectable event-driven backtest used by simple_framework.ipynb.
 
 The model uses adjusted prices as an economic-return proxy. It does not model
-exchange matching, 100-share lots, price limits, or cash dividends separately.
+exchange matching, minimum order quantities, price limits, or cash dividends separately.
 """
 
 from __future__ import annotations
@@ -128,6 +128,8 @@ def clean_inputs(bars, reports, members, benchmark, ma_window=10):
     members = members.drop_duplicates("code")
     if len(members) != 300:
         raise ValueError(f"Expected 300 fixed index constituents, got {len(members)}")
+    if not set(bars["code"]).issubset(set(members["code"])):
+        raise ValueError("Price data contains stocks outside the fixed CSI 300 universe")
     benchmark["date"] = pd.to_datetime(benchmark["date"], errors="coerce")
     for col in ("open", "close"):
         benchmark[col] = pd.to_numeric(benchmark[col], errors="coerce")
@@ -148,7 +150,7 @@ def latest_public_report(reports: pd.DataFrame, decision_date: pd.Timestamp) -> 
     )
 
 
-def select_pool(day_bars: pd.DataFrame, reports: pd.DataFrame, day: pd.Timestamp, size=100):
+def select_pool(day_bars: pd.DataFrame, reports: pd.DataFrame, day: pd.Timestamp, size=10):
     """Select lowest positive PE among tradable members with known reports."""
     report_codes = set(latest_public_report(reports, day)["code6"])
     eligible = day_bars.loc[
@@ -160,6 +162,8 @@ def select_pool(day_bars: pd.DataFrame, reports: pd.DataFrame, day: pd.Timestamp
         & day_bars["code"].str[-6:].isin(report_codes)
     ].sort_values(["peTTM", "code"])
     chosen = eligible.head(size)
+    if len(chosen) != size:
+        raise ValueError(f"Only {len(chosen)} eligible stocks on {day.date()}, need {size}")
     return list(chosen["code"]), len(eligible)
 
 
