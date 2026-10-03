@@ -47,6 +47,21 @@ def load_snapshot(data_dir: Path = DATA_DIR):
     return bars, reports, members, benchmark, manifest
 
 
+def load_market_context(data_dir: Path = DATA_DIR):
+    """Load the Shanghai Composite context series, not a strategy benchmark."""
+    path = data_dir / "simple_2026_shanghai.csv.gz"
+    manifest = json.loads((data_dir / "simple_2026_manifest.json").read_text())
+    if manifest["files"].get(path.name) != _digest(path):
+        raise ValueError("Shanghai Composite file is absent from, or differs from, the manifest")
+    frame = pd.read_csv(path)
+    frame["date"] = pd.to_datetime(frame["date"], errors="coerce")
+    for col in ("open", "close"):
+        frame[col] = pd.to_numeric(frame[col], errors="coerce")
+    if frame["date"].isna().any() or (frame[["open", "close"]] <= 0).any().any():
+        raise ValueError("Invalid Shanghai Composite index date or price")
+    return frame.drop_duplicates("date").sort_values("date").reset_index(drop=True)
+
+
 def clean_inputs(bars, reports, members, benchmark, ma_window=10):
     """Apply an explicit schema; return clean tables and a small rejection audit."""
     if ma_window < 2:

@@ -143,6 +143,13 @@ def main() -> None:
             ),
             "CSI300 index",
         )
+        shanghai = rows(
+            bs.query_history_k_data_plus(
+                "sh.000001", "date,code,open,close", start_date="2025-12-01",
+                end_date=end, frequency="d", adjustflag="3",
+            ),
+            "Shanghai Composite index",
+        )
     finally:
         bs.logout()
 
@@ -156,10 +163,11 @@ def main() -> None:
     members_path = DATA / "simple_2026_members.csv.gz"
     bars_path = DATA / "simple_2026_bars.csv.gz"
     benchmark_path = DATA / "simple_2026_benchmark.csv.gz"
+    shanghai_path = DATA / "simple_2026_shanghai.csv.gz"
     reports_path = DATA / "simple_2026_reports.csv.gz"
     for frame, path in [
         (members, members_path), (daily, bars_path),
-        (benchmark, benchmark_path), (reports, reports_path),
+        (benchmark, benchmark_path), (shanghai, shanghai_path), (reports, reports_path),
     ]:
         atomic_csv(frame, path)
     manifest = {
@@ -174,13 +182,14 @@ def main() -> None:
         "bar_source": "BaoStock query_history_k_data_plus, adjustflag=1 (post-adjusted/hfq)",
         "report_source": "Eastmoney data center RPT_LICO_FN_CPD (public website endpoint)",
         "benchmark_source": "BaoStock sh.000300 price index, not total-return index",
+        "market_context_source": "BaoStock sh.000001 Shanghai Composite price index; context only",
         "limitations": [
             "Eastmoney public endpoint and retrospective revisions are not an immutable point-in-time database.",
             "BaoStock PE history and adjusted prices require independent production-grade point-in-time validation.",
             "Post-adjusted (hfq) OHLC is an economic-return proxy, not a real order price or share count.",
             "The sample universe is CSI 300, so top 100 means top 100 within that universe, not all A shares.",
         ],
-        "files": {path.name: sha256(path) for path in [members_path, bars_path, benchmark_path, reports_path]},
+        "files": {path.name: sha256(path) for path in [members_path, bars_path, benchmark_path, shanghai_path, reports_path]},
     }
     manifest_path = DATA / "simple_2026_manifest.json"
     temp = manifest_path.with_name(manifest_path.name + ".part")
