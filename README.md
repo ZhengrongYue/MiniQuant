@@ -22,7 +22,7 @@ jupyter lab MiniQuant.ipynb
 
 ## 数据与再现
 
-新增 [simple_framework.ipynb](simple_framework.ipynb)：可独立运行、适合按模块写成文章的“API 获取行情与财报 → PE 选 10 只 → MA8/MA15 双均线 → 10 万元风险仓位与盈利比例等额加仓 → 浮动止盈/止损 → 回测指标图与交易 GIF”案例。总资金乘总风险比例得到可亏金额，再除以股价乘个股价格风险比例得到股数；组合计划风险上限 1%、单只账户风险上限 0.2%，先用 1.5×ATR 与 2.5% 初始止损估计仓位；开盘价相对首次买价达到 +2%/+4% 时各排队等额加仓一次，下一开盘重新核验且当天不能有止损、退出或新买信号；上涨 8% 后改用自最高收盘价回撤 2.5% 的止盈条件。佣金示例为买卖各万三、每笔最低 5 元，卖出印花税用万分之五，过户费双边十万分之一；笔记本也对比截图中的旧印花税千分之一。全部必要函数都在 Notebook 内，不导入 `tools`；首次运行从 BaoStock 与东方财富获取数据并缓存在相对目录 `data/private/`。若 CodeLab 不能直连 BaoStock TCP 服务，可在能连接的机器运行同一 Notebook，随后转入缓存。缓存按上游使用条款不随公开仓库发布。行情使用 BaoStock `adjustflag=1` **后复权（hfq）**，仅供收益研究；复权价格和分数份额不是可直接下单的报价与股数。[GIF 动画](figs/simple_framework_trades.gif)列出每次 5 日调池阶段的模拟交易。
+新增 [simple_framework.ipynb](simple_framework.ipynb)：可独立运行、适合按模块写成文章的“API 获取行情与财报 → PE 选 10 只 → MA8/MA15 双均线 → 10 万元风险仓位与盈利比例等额加仓 → 浮动止盈/止损 → 回测指标图与交易 GIF”案例。总资金乘总风险比例得到可亏金额，再除以股价乘个股价格风险比例得到股数；组合计划风险上限 2%、单只账户风险上限 0.8%，先用 1.5×ATR 与 2.5% 初始止损估计仓位；开盘价相对首次买价达到 +2%/+4% 时各排队等额加仓一次，下一开盘重新核验且当天不能有止损、退出或新买信号；上涨 8% 后改用自最高收盘价回撤 2.5% 的止盈条件。佣金示例为买卖各万三、每笔最低 5 元，卖出印花税用万分之五，过户费双边十万分之一；笔记本也对比截图中的旧印花税千分之一。新增完整参数地图，分组选股、均线、风险仓位、分批、退出和费用，并提供可选的“训练段粗筛 → 风控细调 → 放宽仓位 → 留出段检查”实验单元。全部必要函数都在 Notebook 内，不导入 `tools`；首次运行从 BaoStock 与东方财富获取数据并缓存在相对目录 `data/private/`。若 CodeLab 不能直连 BaoStock TCP 服务，可在能连接的机器运行同一 Notebook，随后转入缓存。缓存按上游使用条款不随公开仓库发布。行情使用 BaoStock `adjustflag=1` **后复权（hfq）**，仅供收益研究；复权价格和分数份额不是可直接下单的报价与股数。[GIF 动画](figs/simple_framework_trades.gif)列出每次 5 日调池阶段的模拟交易。
 
 `data/real_equities.parquet` 含 66 支美股 2010-01-04 至 2024-08-30 的 243,540 行真实日行情；`data/manifest.json` 保存来源、筛选、哈希和局限。原始公开 CSV 来自 [stockPredictor 的 S&P 500 文件](https://github.com/mlin21/stockPredictor/blob/main/sp500_stocks.csv)，上游说明指向 [Kaggle S&P 500 Stocks](https://www.kaggle.com/datasets/andrewmvd/sp-500-stocks)；行业元数据来自 [Stock-Analysis-Project](https://github.com/Jiahao30/Stock-Analysis-Project)。Kaggle 原数据集标注为 CC0，两个 GitHub 来源仓库标注为 MIT；本项目保留来源链接及原始文件摘要，发布前仍应按实际使用范围复核上游条款。`tools/build_real_snapshot.py` 可从原始 CSV 重建冻结子集，须提供 `--prices`、`--companies` 和 `--out`。不要把当前 S&P 500 样本回看 2010 年的结果当无偏历史回测；也不要把推算的复权开盘价当可成交报价。
 
@@ -39,3 +39,5 @@ Notebook 第 14 章提供正规券商 App 官方入口核验、纸面模拟、10
 ## 来源与许可
 
 课程从金融产品、A 股/美股/港股差异讲起，吸收旧 `quant-tutorial`、`ref.txt` 与 [Datawhale whale-quant](https://github.com/datawhalechina/whale-quant) 的主题，使用重新组织的原创解释、代码和框架图。旧本地参考文件在完成覆盖审计后已清理；历史主题映射保留在 `tools/COVERAGE.md`，运行无需原目录。whale-quant 使用 CC BY-NC-SA 4.0；若未来出版，须对外部图文、数据源及许可逐项审核。
+
+本次 2026-01-05 至 2026-09-30 教学回测：策略收益约 +5.01%，复合年化换算约 +7.09%，最大回撤约 4.65%；同期沪深 300 价格指数约 −6.54%、年化 −9.03%、最大回撤 14.11%。7—9 月留出段策略约 −0.01%，完整区间结果不代表未来盈利。
